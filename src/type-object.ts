@@ -9,8 +9,7 @@ export type TypeObject =
   | ObjectTO
   | UnionTO
   | EnumTO
-  | TypeParameterTO
-  | UnknownTO
+  | UnsupportedTO
 
 type TypeNameTrait = {
   typeName: string
@@ -55,12 +54,6 @@ export type UnionTO = TypeNameTrait & {
   unions: TypeObject[]
 }
 
-// Unresolved Type Parameter (beta)
-export type TypeParameterTO = {
-  __type: "TypeParameterTO"
-  name: string
-}
-
 export type EnumTO = TypeNameTrait & {
   __type: "EnumTO"
   enums: {
@@ -69,10 +62,12 @@ export type EnumTO = TypeNameTrait & {
   }[]
 }
 
-// 分岐を抜けた未知の型
-export type UnknownTO = {
-  __type: "UnknownTO"
-  kind: "arrayT" | "prop" | "convert"
+/**
+ * @property kind -- identifer of why converted as unsupported
+ */
+export type UnsupportedTO = {
+  __type: "UnsupportedTO"
+  kind: "arrayT" | "prop" | "convert" | "function" | "unresolvedTypeParameter"
   typeText?: string
 }
 

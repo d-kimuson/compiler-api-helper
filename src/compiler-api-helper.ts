@@ -210,12 +210,12 @@ export class CompilerApiHelper {
                   : type
                   ? this.#isCallable(type)
                     ? {
-                        __type: "UnknownTO",
-                        kind: "prop",
+                        __type: "UnsupportedTO",
+                        kind: "function",
                       }
                     : this.#convertType(type)
                   : {
-                      __type: "UnknownTO",
+                      __type: "UnsupportedTO",
                       kind: "prop",
                     },
             }
@@ -304,7 +304,10 @@ export class CompilerApiHelper {
 
   #hasUnresolvedTypeParameter(type: to.TypeObject): boolean {
     if (!("typeName" in type)) {
-      return type.__type === "TypeParameterTO"
+      return (
+        type.__type === "UnsupportedTO" &&
+        type.kind === "unresolvedTypeParameter"
+      )
     }
 
     const deps: to.TypeObject[] =
@@ -319,7 +322,8 @@ export class CompilerApiHelper {
     return deps.reduce(
       (s: boolean, t: to.TypeObject) =>
         s ||
-        t.__type === "TypeParameterTO" ||
+        (t.__type === "UnsupportedTO" &&
+          t.kind === "unresolvedTypeParameter") ||
         ("typeName" in t &&
           t.typeName !== type.typeName &&
           this.#hasUnresolvedTypeParameter(t)),
@@ -341,11 +345,12 @@ export class CompilerApiHelper {
           unions: (type?.types ?? []).map((type) => this.#convertType(type)),
         })
       )
-      .case<to.TypeParameterTO>(
+      .case<to.UnsupportedTO>(
         ({ type }) => type.isTypeParameter(),
         ({ typeText }) => ({
-          __type: "TypeParameterTO",
-          name: typeText,
+          __type: "UnsupportedTO",
+          kind: "unresolvedTypeParameter",
+          typeText,
         })
       )
       .case<to.TupleTO, { typeNode: ts.TupleTypeNode }>(
@@ -427,7 +432,7 @@ export class CompilerApiHelper {
             const resultT = this.#extractArrayT(type)
             return isOk(resultT)
               ? resultT.ok
-              : ({ __type: "UnknownTO", kind: "arrayT" } as const)
+              : ({ __type: "UnsupportedTO", kind: "arrayT" } as const)
           })(),
         })
       )
@@ -435,8 +440,8 @@ export class CompilerApiHelper {
         ({ type }) => this.#typeChecker.getPropertiesOfType(type).length !== 0,
         ({ type }) => this.#createObjectType(type)
       )
-      .default<to.UnknownTO>(({ typeText }) => ({
-        __type: "UnknownTO",
+      .default<to.UnsupportedTO>(({ typeText }) => ({
+        __type: "UnsupportedTO",
         kind: "convert",
         typeText,
       }))

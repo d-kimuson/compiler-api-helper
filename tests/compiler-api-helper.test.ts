@@ -248,8 +248,8 @@ describe("convertType", () => {
         // method is not supported yet
         propName: "hoge",
         type: {
-          __type: "UnknownTO",
-          kind: "prop",
+          __type: "UnsupportedTO",
+          kind: "function",
         },
       },
       {

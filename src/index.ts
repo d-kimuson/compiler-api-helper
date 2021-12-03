@@ -9,9 +9,7 @@ export type {
   TupleTO,
   ObjectTO,
   UnionTO,
-  TypeParameterTO,
   EnumTO,
-  // SkipTO,
-  UnknownTO,
+  UnsupportedTO,
 } from "./type-object"
 export default CompilerApiHelper
