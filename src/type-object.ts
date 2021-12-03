@@ -11,7 +11,6 @@ export type TypeObject =
   | EnumTO
   | TypeParameterTO
   | UnknownTO
-  | SkipTO
 
 type TypeNameTrait = {
   typeName: string
@@ -70,11 +69,6 @@ export type EnumTO = TypeNameTrait & {
   }[]
 }
 
-// サポートしてない型(スキップする)
-export type SkipTO = {
-  __type: "SkipTO"
-}
-
 // 分岐を抜けた未知の型
 export type UnknownTO = {
   __type: "UnknownTO"
@@ -93,11 +87,5 @@ export function special(kind: SpecialTO["kind"]): SpecialTO {
   return {
     __type: "SpecialTO",
     kind,
-  }
-}
-
-export function skip(): SkipTO {
-  return {
-    __type: "SkipTO",
   }
 }

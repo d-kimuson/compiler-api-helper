@@ -245,6 +245,14 @@ describe("convertType", () => {
         },
       },
       {
+        // method is not supported yet
+        propName: "hoge",
+        type: {
+          __type: "UnknownTO",
+          kind: "prop",
+        },
+      },
+      {
         propName: "time",
         type: {
           __type: "SpecialTO",
@@ -380,6 +388,36 @@ describe("convertType", () => {
               kind: "string",
             },
           ],
+        },
+      },
+    ])
+  })
+
+  it("object", () => {
+    const typesResult = helper.extractTypes(
+      absolutePath("./types/re-export/index.ts")
+    )
+    expect(isOk(typesResult)).toBe(true)
+    if (!isOk(typesResult)) {
+      return
+    }
+
+    const types = typesResult.ok
+
+    const [type0, type1] = types
+    expect(type0).toBeDefined()
+    expect(type1).not.toBeDefined()
+
+    expect(type0?.type.__type).toStrictEqual("ObjectTO")
+    if (type0?.type.__type !== "ObjectTO") {
+      return
+    }
+    expect(type0?.type.getProps()).toStrictEqual([
+      {
+        propName: "name",
+        type: {
+          __type: "PrimitiveTO",
+          kind: "string",
         },
       },
     ])

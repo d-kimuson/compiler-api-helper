@@ -11,7 +11,7 @@ export type {
   UnionTO,
   TypeParameterTO,
   EnumTO,
-  SkipTO,
+  // SkipTO,
   UnknownTO,
 } from "./type-object"
 export default CompilerApiHelper

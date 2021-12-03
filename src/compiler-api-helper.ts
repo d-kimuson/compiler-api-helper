@@ -2,8 +2,10 @@ import * as ts from "typescript"
 import { forEachChild, unescapeLeadingUnderscores } from "typescript"
 import type * as to from "./type-object"
 import type { Result } from "./util"
-import { primitive, special, skip } from "./type-object"
+import { primitive, special } from "./type-object"
 import { ok, ng, switchExpression, isOk, isNg } from "./util"
+
+type TypeDeclaration = { typeName: string | undefined; type: to.TypeObject }
 
 export class CompilerApiHelper {
   #program: ts.Program
@@ -103,7 +105,7 @@ export class CompilerApiHelper {
 
   // Only support named-export
   #extractTypesFromExportDeclaration(declare: ts.ExportDeclaration): Result<
-    { typeName: string | undefined; type: to.TypeObject }[],
+    TypeDeclaration[],
     {
       reason:
         | "fileNotFound"
@@ -156,13 +158,8 @@ export class CompilerApiHelper {
           .map(({ symbol }) => symbol?.getEscapedName())
           .filter((str): str is ts.__String => typeof str !== "undefined")
           .map((str) => ts.unescapeLeadingUnderscores(str))
-          .map(
-            (key) =>
-              types.ok.find(({ typeName }) => typeName === key) ?? {
-                typeName: key,
-                type: skip(),
-              }
-          )
+          .map((key) => types.ok.find(({ typeName }) => typeName === key))
+          .filter((type): type is TypeDeclaration => type !== undefined)
       )
     }
 
@@ -186,44 +183,44 @@ export class CompilerApiHelper {
       tsType,
       typeName: this.#typeToString(tsType),
       getProps: () =>
-        this.#typeChecker
-          .getPropertiesOfType(tsType)
-          .map(
-            (
-              symbol
-            ): {
-              propName: string
-              type: to.TypeObject
-            } => {
-              const typeNode = symbol.valueDeclaration?.type
-              const declare = (symbol.declarations ?? [])[0]
-              const type = declare
-                ? this.#typeChecker.getTypeOfSymbolAtLocation(symbol, declare)
-                : undefined
+        this.#typeChecker.getPropertiesOfType(tsType).map(
+          (
+            symbol
+          ): {
+            propName: string
+            type: to.TypeObject
+          } => {
+            const typeNode = symbol.valueDeclaration?.type
+            const declare = (symbol.declarations ?? [])[0]
+            const type = declare
+              ? this.#typeChecker.getTypeOfSymbolAtLocation(symbol, declare)
+              : undefined
 
-              return {
-                propName: String(symbol.escapedName),
-                type:
-                  typeNode && ts.isArrayTypeNode(typeNode)
+            return {
+              propName: String(symbol.escapedName),
+              type:
+                typeNode && ts.isArrayTypeNode(typeNode)
+                  ? {
+                      __type: "ArrayTO",
+                      typeName: this.#typeToString(
+                        this.#typeChecker.getTypeFromTypeNode(typeNode)
+                      ),
+                      child: this.#extractArrayTFromTypeNode(typeNode),
+                    }
+                  : type
+                  ? this.#isCallable(type)
                     ? {
-                        __type: "ArrayTO",
-                        typeName: this.#typeToString(
-                          this.#typeChecker.getTypeFromTypeNode(typeNode)
-                        ),
-                        child: this.#extractArrayTFromTypeNode(typeNode),
-                      }
-                    : type
-                    ? this.#isCallable(type)
-                      ? skip()
-                      : this.#convertType(type)
-                    : {
                         __type: "UnknownTO",
                         kind: "prop",
-                      },
-              }
+                      }
+                    : this.#convertType(type)
+                  : {
+                      __type: "UnknownTO",
+                      kind: "prop",
+                    },
             }
-          )
-          .filter((typeObject) => typeObject.type.__type !== "SkipTO"),
+          }
+        ),
     }
   }
 
