@@ -16,6 +16,11 @@ export class CompilerApiHelper {
     this.#typeChecker = this.#program.getTypeChecker()
   }
 
+  public updateProgram(program: ts.Program): void {
+    this.#program = program
+    this.#typeChecker = this.#program.getTypeChecker()
+  }
+
   public extractTypes(filePath: string): Result<
     { typeName: string | undefined; type: to.TypeObject }[],
     | { reason: "fileNotFound" }
