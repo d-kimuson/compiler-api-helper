@@ -1,0 +1,24 @@
+diff --git a/node_modules/typescript/lib/typescript.d.ts b/node_modules/typescript/lib/typescript.d.ts
+index 1885ae3..b2e9773 100644
+--- a/node_modules/typescript/lib/typescript.d.ts
++++ b/node_modules/typescript/lib/typescript.d.ts
+@@ -569,6 +569,8 @@ declare namespace ts {
+         readonly decorators?: NodeArray<Decorator>;
+         readonly modifiers?: ModifiersArray;
+         readonly parent: Node;
++        readonly type?: TypeNode,
++        readonly symbol?: Symbol
+     }
+     export interface JSDocContainer {
+     }
+@@ -2616,6 +2618,10 @@ declare namespace ts {
+         pattern?: DestructuringPattern;
+         aliasSymbol?: Symbol;
+         aliasTypeArguments?: readonly Type[];
++        types?: Type[],
++        resolvedTypeArguments?: Type[],
++        value?: unknown,
++        node?: Node
+     }
+     export interface LiteralType extends Type {
+         value: string | number | PseudoBigInt;
