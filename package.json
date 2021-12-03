@@ -1,0 +1,59 @@
+{
+  "name": "compiler-api-helper",
+  "version": "1.0.0",
+  "license": "MIT",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "dependencies": {
+    "ramda": "^0.27.1",
+    "typescript": "^4.5.2"
+  },
+  "scripts": {
+    "typecheck": "tsc -p . --noEmit",
+    "lint": "run-s lint:*",
+    "lint:eslint": "eslint . --ext ts",
+    "lint:prettier": "yarn prettier --check",
+    "fix": "run-s fix:*",
+    "fix:eslint": "yarn lint:eslint --fix",
+    "fix:prettier": "yarn prettier --write",
+    "prettier": "prettier '**/*.{ts,js,json,md}'",
+    "build": "tsc -p . && tsc-alias -p tsconfig.json",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint-staged": "lint-staged --allow-empty",
+    "prepare": "husky install",
+    "prepublishOnly": "yarn build",
+    "patch": "patch-package"
+  },
+  "lint-staged": {
+    "**/*.ts": [
+      "eslint --fix"
+    ],
+    "**/*.{ts,js,json,md}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.11.7",
+    "@types/ramda": "^0.27.49",
+    "@typescript-eslint/eslint-plugin": "^5.3.1",
+    "@typescript-eslint/parser": "^5.3.1",
+    "eslint": "^8.2.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-import-resolver-typescript": "^2.5.0",
+    "eslint-plugin-import": "^2.25.3",
+    "husky": "^7.0.4",
+    "jest": "^27.3.1",
+    "lint-staged": "^12.0.2",
+    "npm-run-all": "^4.1.5",
+    "patch-package": "^6.4.7",
+    "postinstall-postinstall": "^2.1.0",
+    "prettier": "^2.4.1",
+    "ts-jest": "^27.0.7",
+    "ts-node": "^10.4.0",
+    "tsc-alias": "^1.4.0",
+    "tsconfig-paths": "^3.11.0",
+    "tsd": "^0.18.0"
+  }
+}
