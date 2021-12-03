@@ -70,7 +70,7 @@ export class CompilerApiHelper {
         .flatMap((node) => {
           // export {} from 'path'
           if (ts.isExportDeclaration(node)) {
-            const nodes = this.#extractTypesFromExportDeclaration(node)
+            const nodes = this.extractTypesFromExportDeclaration(node)
             if (isOk(nodes)) {
               return nodes.ok
             } else {
@@ -87,7 +87,7 @@ export class CompilerApiHelper {
               typeof node?.symbol?.escapedName !== "undefined"
                 ? String(node?.symbol?.escapedName)
                 : undefined,
-            type: this.#convertType(this.#typeChecker.getTypeAtLocation(node)),
+            type: this.convertType(this.#typeChecker.getTypeAtLocation(node)),
           }
         })
         .filter(
@@ -109,7 +109,9 @@ export class CompilerApiHelper {
   }
 
   // Only support named-export
-  #extractTypesFromExportDeclaration(declare: ts.ExportDeclaration): Result<
+  public extractTypesFromExportDeclaration(
+    declare: ts.ExportDeclaration
+  ): Result<
     TypeDeclaration[],
     {
       reason:
@@ -173,170 +175,7 @@ export class CompilerApiHelper {
     })
   }
 
-  #extractNodes(sourceFile: ts.SourceFile): ts.Node[] {
-    const nodes: ts.Node[] = []
-    forEachChild(sourceFile, (node) => {
-      nodes.push(node)
-    })
-
-    return nodes
-  }
-
-  #createObjectType(tsType: ts.Type): to.ObjectTO {
-    return {
-      __type: "ObjectTO",
-      tsType,
-      typeName: this.#typeToString(tsType),
-      getProps: () =>
-        this.#typeChecker.getPropertiesOfType(tsType).map(
-          (
-            symbol
-          ): {
-            propName: string
-            type: to.TypeObject
-          } => {
-            const typeNode = symbol.valueDeclaration?.type
-            const declare = (symbol.declarations ?? [])[0]
-            const type = declare
-              ? this.#typeChecker.getTypeOfSymbolAtLocation(symbol, declare)
-              : undefined
-
-            return {
-              propName: String(symbol.escapedName),
-              type:
-                typeNode && ts.isArrayTypeNode(typeNode)
-                  ? {
-                      __type: "ArrayTO",
-                      typeName: this.#typeToString(
-                        this.#typeChecker.getTypeFromTypeNode(typeNode)
-                      ),
-                      child: this.#extractArrayTFromTypeNode(typeNode),
-                    }
-                  : type
-                  ? this.#isCallable(type)
-                    ? {
-                        __type: "UnsupportedTO",
-                        kind: "function",
-                      }
-                    : this.#convertType(type)
-                  : {
-                      __type: "UnsupportedTO",
-                      kind: "prop",
-                    },
-            }
-          }
-        ),
-    }
-  }
-
-  #extractArrayTFromTypeNode(typeNode: ts.ArrayTypeNode): to.TypeObject {
-    return this.#convertType(
-      this.#typeChecker.getTypeAtLocation(typeNode.elementType)
-    )
-  }
-
-  #extractArrayT(
-    type: ts.Type
-  ): Result<
-    to.TypeObject,
-    { reason: "node_not_defined" | "not_array_type_node" | "cannot_resolve" }
-  > {
-    const maybeArrayT = (type.resolvedTypeArguments ?? [])[0]
-    if (
-      type.symbol.getEscapedName() === "Array" &&
-      typeof maybeArrayT !== "undefined"
-    ) {
-      return ok(this.#convertType(maybeArrayT))
-    }
-
-    const maybeNode = type?.node
-    if (!maybeNode) {
-      return ng({
-        reason: "node_not_defined",
-      })
-    }
-
-    // Array<T> で定義されているとき
-    if (ts.isTypeReferenceNode(maybeNode)) {
-      const [typeArg1] = this.#extractTypeArgumentsFromTypeRefNode(maybeNode)
-
-      return typeof typeArg1 !== "undefined"
-        ? ok(typeArg1)
-        : ng({
-            reason: "cannot_resolve",
-          })
-    }
-
-    if (!ts.isArrayTypeNode(maybeNode)) {
-      return ng({
-        reason: "not_array_type_node",
-      })
-    }
-
-    return ok(this.#extractArrayTFromTypeNode(maybeNode))
-  }
-
-  #extractTypeArguments(
-    type: ts.Type
-  ): Result<
-    to.TypeObject[],
-    { reason: "node_not_found" | "not_type_ref_node" }
-  > {
-    const maybeTypeRefNode = (type.aliasSymbol?.declarations ?? [])[0]?.type
-
-    if (!maybeTypeRefNode) {
-      return ng({
-        reason: "node_not_found",
-      })
-    }
-
-    if (!ts.isTypeReferenceNode(maybeTypeRefNode)) {
-      return ng({
-        reason: "not_type_ref_node",
-      })
-    }
-
-    return ok(this.#extractTypeArgumentsFromTypeRefNode(maybeTypeRefNode))
-  }
-
-  #extractTypeArgumentsFromTypeRefNode(
-    node: ts.TypeReferenceNode
-  ): to.TypeObject[] {
-    return Array.from(node.typeArguments ?? []).map((arg) =>
-      this.#convertType(this.#typeChecker.getTypeFromTypeNode(arg))
-    )
-  }
-
-  #hasUnresolvedTypeParameter(type: to.TypeObject): boolean {
-    if (!("typeName" in type)) {
-      return (
-        type.__type === "UnsupportedTO" &&
-        type.kind === "unresolvedTypeParameter"
-      )
-    }
-
-    const deps: to.TypeObject[] =
-      type.__type === "ObjectTO"
-        ? type.getProps().map((prop) => prop.type)
-        : type.__type === "ArrayTO"
-        ? [type.child]
-        : type.__type === "UnionTO"
-        ? type.unions
-        : []
-
-    return deps.reduce(
-      (s: boolean, t: to.TypeObject) =>
-        s ||
-        (t.__type === "UnsupportedTO" &&
-          t.kind === "unresolvedTypeParameter") ||
-        ("typeName" in t &&
-          t.typeName !== type.typeName &&
-          this.#hasUnresolvedTypeParameter(t)),
-      false
-    )
-  }
-
-  #convertType(type: ts.Type): to.TypeObject {
+  public convertType(type: ts.Type): to.TypeObject {
     return switchExpression({
       type,
       typeNode: type.node,
@@ -347,7 +186,7 @@ export class CompilerApiHelper {
         ({ typeText }) => ({
           __type: "UnionTO",
           typeName: typeText,
-          unions: (type?.types ?? []).map((type) => this.#convertType(type)),
+          unions: (type?.types ?? []).map((type) => this.convertType(type)),
         })
       )
       .case<to.UnsupportedTO>(
@@ -365,7 +204,7 @@ export class CompilerApiHelper {
           __type: "TupleTO",
           typeName: typeText,
           items: typeNode.elements.map((typeNode) =>
-            this.#convertType(this.#typeChecker.getTypeFromTypeNode(typeNode))
+            this.convertType(this.#typeChecker.getTypeFromTypeNode(typeNode))
           ),
         })
       )
@@ -450,6 +289,169 @@ export class CompilerApiHelper {
         kind: "convert",
         typeText,
       }))
+  }
+
+  #extractNodes(sourceFile: ts.SourceFile): ts.Node[] {
+    const nodes: ts.Node[] = []
+    forEachChild(sourceFile, (node) => {
+      nodes.push(node)
+    })
+
+    return nodes
+  }
+
+  #createObjectType(tsType: ts.Type): to.ObjectTO {
+    return {
+      __type: "ObjectTO",
+      tsType,
+      typeName: this.#typeToString(tsType),
+      getProps: () =>
+        this.#typeChecker.getPropertiesOfType(tsType).map(
+          (
+            symbol
+          ): {
+            propName: string
+            type: to.TypeObject
+          } => {
+            const typeNode = symbol.valueDeclaration?.type
+            const declare = (symbol.declarations ?? [])[0]
+            const type = declare
+              ? this.#typeChecker.getTypeOfSymbolAtLocation(symbol, declare)
+              : undefined
+
+            return {
+              propName: String(symbol.escapedName),
+              type:
+                typeNode && ts.isArrayTypeNode(typeNode)
+                  ? {
+                      __type: "ArrayTO",
+                      typeName: this.#typeToString(
+                        this.#typeChecker.getTypeFromTypeNode(typeNode)
+                      ),
+                      child: this.#extractArrayTFromTypeNode(typeNode),
+                    }
+                  : type
+                  ? this.#isCallable(type)
+                    ? {
+                        __type: "UnsupportedTO",
+                        kind: "function",
+                      }
+                    : this.convertType(type)
+                  : {
+                      __type: "UnsupportedTO",
+                      kind: "prop",
+                    },
+            }
+          }
+        ),
+    }
+  }
+
+  #extractArrayTFromTypeNode(typeNode: ts.ArrayTypeNode): to.TypeObject {
+    return this.convertType(
+      this.#typeChecker.getTypeAtLocation(typeNode.elementType)
+    )
+  }
+
+  #extractArrayT(
+    type: ts.Type
+  ): Result<
+    to.TypeObject,
+    { reason: "node_not_defined" | "not_array_type_node" | "cannot_resolve" }
+  > {
+    const maybeArrayT = (type.resolvedTypeArguments ?? [])[0]
+    if (
+      type.symbol.getEscapedName() === "Array" &&
+      typeof maybeArrayT !== "undefined"
+    ) {
+      return ok(this.convertType(maybeArrayT))
+    }
+
+    const maybeNode = type?.node
+    if (!maybeNode) {
+      return ng({
+        reason: "node_not_defined",
+      })
+    }
+
+    // Array<T> で定義されているとき
+    if (ts.isTypeReferenceNode(maybeNode)) {
+      const [typeArg1] = this.#extractTypeArgumentsFromTypeRefNode(maybeNode)
+
+      return typeof typeArg1 !== "undefined"
+        ? ok(typeArg1)
+        : ng({
+            reason: "cannot_resolve",
+          })
+    }
+
+    if (!ts.isArrayTypeNode(maybeNode)) {
+      return ng({
+        reason: "not_array_type_node",
+      })
+    }
+
+    return ok(this.#extractArrayTFromTypeNode(maybeNode))
+  }
+
+  #extractTypeArguments(
+    type: ts.Type
+  ): Result<
+    to.TypeObject[],
+    { reason: "node_not_found" | "not_type_ref_node" }
+  > {
+    const maybeTypeRefNode = (type.aliasSymbol?.declarations ?? [])[0]?.type
+
+    if (!maybeTypeRefNode) {
+      return ng({
+        reason: "node_not_found",
+      })
+    }
+
+    if (!ts.isTypeReferenceNode(maybeTypeRefNode)) {
+      return ng({
+        reason: "not_type_ref_node",
+      })
+    }
+
+    return ok(this.#extractTypeArgumentsFromTypeRefNode(maybeTypeRefNode))
+  }
+
+  #extractTypeArgumentsFromTypeRefNode(
+    node: ts.TypeReferenceNode
+  ): to.TypeObject[] {
+    return Array.from(node.typeArguments ?? []).map((arg) =>
+      this.convertType(this.#typeChecker.getTypeFromTypeNode(arg))
+    )
+  }
+
+  #hasUnresolvedTypeParameter(type: to.TypeObject): boolean {
+    if (!("typeName" in type)) {
+      return (
+        type.__type === "UnsupportedTO" &&
+        type.kind === "unresolvedTypeParameter"
+      )
+    }
+
+    const deps: to.TypeObject[] =
+      type.__type === "ObjectTO"
+        ? type.getProps().map((prop) => prop.type)
+        : type.__type === "ArrayTO"
+        ? [type.child]
+        : type.__type === "UnionTO"
+        ? type.unions
+        : []
+
+    return deps.reduce(
+      (s: boolean, t: to.TypeObject) =>
+        s ||
+        (t.__type === "UnsupportedTO" &&
+          t.kind === "unresolvedTypeParameter") ||
+        ("typeName" in t &&
+          t.typeName !== type.typeName &&
+          this.#hasUnresolvedTypeParameter(t)),
+      false
+    )
   }
 
   #isCallable(type: ts.Type): boolean {
