@@ -288,6 +288,24 @@ export class CompilerApiHelper {
         ({ type }) =>
           this.convertTypeFromCallableSignature(type.getCallSignatures()[0])
       )
+      .case<to.PromiseTO>(
+        ({ type }) =>
+          unescapeLeadingUnderscores(type.symbol.escapedName) === "Promise",
+        ({ type }) => {
+          const typeArgResult = this.#extractTypeArguments(type)
+          const typeArg: to.TypeObject = isOk(typeArgResult)
+            ? typeArgResult.ok[0]
+            : {
+                __type: "UnsupportedTO",
+                kind: "promiseNoArgument",
+              }
+
+          return {
+            __type: "PromiseTO",
+            child: typeArg,
+          }
+        }
+      )
       .case<to.ObjectTO>(
         ({ type }) => this.#typeChecker.getPropertiesOfType(type).length !== 0,
         ({ type }) => this.#createObjectType(type)
@@ -433,8 +451,8 @@ export class CompilerApiHelper {
   #extractTypeArguments(
     type: ts.Type
   ): Result<
-    to.TypeObject[],
-    { reason: "node_not_found" | "not_type_ref_node" }
+    [to.TypeObject, ...to.TypeObject[]],
+    { reason: "node_not_found" | "not_type_ref_node" | "no_type_argument" }
   > {
     const maybeTypeRefNode = (type.aliasSymbol?.declarations ?? [])[0]?.type
 
@@ -450,7 +468,13 @@ export class CompilerApiHelper {
       })
     }
 
-    return ok(this.#extractTypeArgumentsFromTypeRefNode(maybeTypeRefNode))
+    const args = this.#extractTypeArgumentsFromTypeRefNode(maybeTypeRefNode)
+
+    return args.length > 0
+      ? ok(args as [to.TypeObject, ...to.TypeObject[]])
+      : ng({
+          reason: "no_type_argument",
+        })
   }
 
   #extractTypeArgumentsFromTypeRefNode(

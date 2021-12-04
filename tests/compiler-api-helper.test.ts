@@ -470,4 +470,34 @@ describe("convertType", () => {
 
     expect(type2).not.toBeDefined()
   })
+
+  it("promise", () => {
+    const typesResult = helper.extractTypes(absolutePath("./types/promise.ts"))
+    expect(isOk(typesResult)).toBe(true)
+    if (!isOk(typesResult)) {
+      return
+    }
+
+    const types = typesResult.ok
+
+    const [type0, type1] = types
+    expect(type0).toBeDefined()
+    expect(type0?.type.__type).toBe("PromiseTO")
+    if (!type0 || type0.type.__type !== "PromiseTO") return
+
+    const childType = type0.type.child
+    expect(childType.__type).toBe("ObjectTO")
+    if (childType.__type !== "ObjectTO") return
+    expect(childType.getProps()).toStrictEqual([
+      {
+        propName: "name",
+        type: {
+          __type: "PrimitiveTO",
+          kind: "string",
+        },
+      },
+    ])
+
+    expect(type1).not.toBeDefined()
+  })
 })

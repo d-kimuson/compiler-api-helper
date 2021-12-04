@@ -10,6 +10,7 @@ export type TypeObject =
   | UnionTO
   | EnumTO
   | CallableTO
+  | PromiseTO
   | UnsupportedTO
 
 type WithTypeName = {
@@ -78,12 +79,23 @@ export type CallableTO = {
   returnType: TypeObject
 }
 
+export type PromiseTO = {
+  __type: "PromiseTO"
+  child: TypeObject
+}
+
 /**
  * @property kind -- identifer of why converted as unsupported
  */
 export type UnsupportedTO = {
   __type: "UnsupportedTO"
-  kind: "arrayT" | "prop" | "convert" | "function" | "unresolvedTypeParameter"
+  kind:
+    | "arrayT"
+    | "prop"
+    | "convert"
+    | "function"
+    | "unresolvedTypeParameter"
+    | "promiseNoArgument"
   typeText?: string
 }
 
