@@ -11,5 +11,7 @@ export type {
   UnionTO,
   EnumTO,
   UnsupportedTO,
+  CallableTO,
+  PromiseTO,
 } from "./type-object"
 export default CompilerApiHelper

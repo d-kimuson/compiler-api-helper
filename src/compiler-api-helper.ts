@@ -190,11 +190,15 @@ export class CompilerApiHelper {
       typeText: this.#typeToString(type),
     })
       .case<to.UnionTO>(
-        ({ type }) => type.isUnion(),
+        ({ type }) => type.isUnion() && type.types.length > 0,
         ({ typeText }) => ({
           __type: "UnionTO",
           typeName: typeText,
-          unions: (type?.types ?? []).map((type) => this.convertType(type)),
+          unions: (type?.types ?? []).map((type) => this.convertType(type)) as [
+            to.TypeObject,
+            to.TypeObject,
+            ...to.TypeObject[]
+          ],
         })
       )
       .case<to.UnsupportedTO>(
@@ -315,7 +319,7 @@ export class CompilerApiHelper {
         ({ type }) => this.#typeChecker.getPropertiesOfType(type).length !== 0,
         ({ type }) => this.#createObjectType(type)
       )
-      .default<to.UnsupportedTO>(({ typeText, type }) => {
+      .default<to.UnsupportedTO>(({ typeText }) => {
         return {
           __type: "UnsupportedTO",
           kind: "convert",

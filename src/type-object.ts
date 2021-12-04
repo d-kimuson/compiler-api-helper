@@ -53,7 +53,7 @@ export type ObjectTO = WithTypeName & {
 
 export type UnionTO = WithTypeName & {
   __type: "UnionTO"
-  unions: TypeObject[]
+  unions: [TypeObject, TypeObject, ...TypeObject[]]
 }
 
 export type EnumTO = WithTypeName & {
