@@ -88,13 +88,10 @@ describe("convertType", () => {
     }
 
     const types = typesResult.ok
-    expect(types.length).toStrictEqual(3)
-    const [type0, type1, type2, type3] = types
+    const [type0, type1] = types
     expect(type0).toBeDefined()
-    expect(type1).toBeDefined()
-    expect(type2).toBeDefined()
-    expect(type3).not.toBeDefined()
-    if (!type0 || !type1 || !type2) return
+    expect(type1).not.toBeDefined()
+    if (!type0) return
 
     expect(type0.type).toStrictEqual({
       __type: "UnionTO",
@@ -110,41 +107,74 @@ describe("convertType", () => {
         },
       ],
     })
+  })
 
-    expect(type1.type).toStrictEqual({
-      __type: "UnionTO",
+  it("enum", () => {
+    const typesResult = helper.extractTypes(absolutePath("./types/enum.ts"))
+    expect(isOk(typesResult)).toBe(true)
+    if (!isOk(typesResult)) {
+      return
+    }
+
+    const types = typesResult.ok
+    const [type0, type1, type2] = types
+    expect(type0).toBeDefined()
+    expect(type1).toBeDefined()
+    expect(type2).not.toBeDefined()
+    if (!type0 || !type1) return
+
+    expect(type0.type).toStrictEqual({
+      __type: "EnumTO",
       typeName: "BasicEnum",
-      unions: [
+      enums: [
         {
-          __type: "LiteralTO",
-          value: 0,
+          name: "Red",
+          type: {
+            __type: "LiteralTO",
+            value: 0,
+          },
         },
         {
-          __type: "LiteralTO",
-          value: 1,
+          name: "Blue",
+          type: {
+            __type: "LiteralTO",
+            value: 1,
+          },
         },
         {
-          __type: "LiteralTO",
-          value: 2,
+          name: "Green",
+          type: {
+            __type: "LiteralTO",
+            value: 2,
+          },
         },
       ],
     })
 
-    expect(type2.type).toStrictEqual({
-      __type: "UnionTO",
+    expect(type1.type).toStrictEqual({
+      __type: "EnumTO",
       typeName: "EnumWithValue",
-      unions: [
+      enums: [
         {
-          __type: "LiteralTO",
-          value: "red",
+          name: "Red",
+          type: {
+            __type: "LiteralTO",
+            value: "red",
+          },
         },
         {
-          __type: "LiteralTO",
-          value: "blue",
+          name: "Blue",
+          type: {
+            __type: "LiteralTO",
+            value: "blue",
+          },
         },
         {
-          __type: "LiteralTO",
-          value: "green",
+          name: "Green",
+          type: {
+            __type: "LiteralTO",
+            value: "green",
+          },
         },
       ],
     })

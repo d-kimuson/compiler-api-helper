@@ -96,6 +96,7 @@ export type UnsupportedTO = {
     | "function"
     | "unresolvedTypeParameter"
     | "promiseNoArgument"
+    | "enumValNotFound"
   typeText?: string
 }
 

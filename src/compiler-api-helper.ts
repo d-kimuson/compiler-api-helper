@@ -189,6 +189,37 @@ export class CompilerApiHelper {
       typeNode: type.node,
       typeText: this.#typeToString(type),
     })
+      .case<to.EnumTO>(
+        ({ type }) =>
+          type.isUnion() &&
+          type.types.length > 0 &&
+          typeof type.symbol !== "undefined", // only enum declare have symbol
+        ({ type, typeText }) => {
+          const enums: to.EnumTO["enums"] = []
+          type.symbol?.exports?.forEach((symbol, key) => {
+            // console.log(key, symbol)
+            const valueDeclare = symbol.valueDeclaration
+            if (valueDeclare) {
+              const valType = this.convertType(
+                this.#typeChecker.getTypeAtLocation(valueDeclare)
+              )
+
+              if (valType.__type === "LiteralTO") {
+                enums.push({
+                  name: unescapeLeadingUnderscores(key),
+                  type: valType,
+                })
+              }
+            }
+          })
+
+          return {
+            __type: "EnumTO",
+            typeName: typeText,
+            enums,
+          }
+        }
+      )
       .case<to.UnionTO>(
         ({ type }) => type.isUnion() && type.types.length > 0,
         ({ typeText }) => ({
