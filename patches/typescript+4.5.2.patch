@@ -1,5 +1,5 @@
 diff --git a/node_modules/typescript/lib/typescript.d.ts b/node_modules/typescript/lib/typescript.d.ts
-index 1885ae3..b2e9773 100644
+index 1885ae3..f47a08e 100644
 --- a/node_modules/typescript/lib/typescript.d.ts
 +++ b/node_modules/typescript/lib/typescript.d.ts
 @@ -569,6 +569,8 @@ declare namespace ts {
@@ -11,7 +11,22 @@ index 1885ae3..b2e9773 100644
      }
      export interface JSDocContainer {
      }
-@@ -2616,6 +2618,10 @@ declare namespace ts {
+@@ -862,6 +864,9 @@ declare namespace ts {
+     }
+     export interface TypeNode extends Node {
+         _typeNodeBrand: any;
++        // Maybe this should be in Node type
++        locals?: ESMap<Symbol, string> | undefined;
++        hoge: string
+     }
+     export interface KeywordTypeNode<TKind extends KeywordTypeSyntaxKind = KeywordTypeSyntaxKind> extends KeywordToken<TKind>, TypeNode {
+         readonly kind: TKind;
+@@ -2612,10 +2617,14 @@ declare namespace ts {
+     export type DestructuringPattern = BindingPattern | ObjectLiteralExpression | ArrayLiteralExpression;
+     export interface Type {
+         flags: TypeFlags;
+-        symbol: Symbol;
++        symbol?: Symbol;
          pattern?: DestructuringPattern;
          aliasSymbol?: Symbol;
          aliasTypeArguments?: readonly Type[];

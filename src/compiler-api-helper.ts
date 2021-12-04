@@ -299,7 +299,9 @@ export class CompilerApiHelper {
       )
       .case<to.PromiseTO>(
         ({ type }) =>
-          unescapeLeadingUnderscores(type.symbol.escapedName) === "Promise",
+          (typeof type.symbol?.escapedName !== "undefined"
+            ? unescapeLeadingUnderscores(type.symbol?.escapedName)
+            : "") === "Promise",
         ({ type }) => {
           const typeArgResult = this.#extractTypeArguments(type)
           const typeArg: to.TypeObject = isOk(typeArgResult)
@@ -424,7 +426,7 @@ export class CompilerApiHelper {
   > {
     const maybeArrayT = (type.resolvedTypeArguments ?? [])[0]
     if (
-      type.symbol.getEscapedName() === "Array" &&
+      type.symbol?.getEscapedName() === "Array" &&
       typeof maybeArrayT !== "undefined"
     ) {
       return ok(this.convertType(maybeArrayT))

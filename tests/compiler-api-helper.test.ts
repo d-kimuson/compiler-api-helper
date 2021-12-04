@@ -340,8 +340,8 @@ describe("convertType", () => {
     }
 
     const types = typesResult.ok
-    expect(types.length).toStrictEqual(1)
-    const [type0] = types
+    const [type0, type1] = types
+    expect(type0).toBeDefined()
     if (typeof type0 === "undefined") return
 
     expect(type0.type.__type).toBe("ObjectTO")
@@ -380,6 +380,27 @@ describe("convertType", () => {
               kind: "string",
             },
           ],
+        },
+      },
+    ])
+
+    // intersection
+    expect(type1).toBeDefined()
+    expect(type1?.type.__type).toBe("ObjectTO")
+    if (!type1 || type1?.type.__type !== "ObjectTO") return
+    expect(type1?.type.getProps()).toStrictEqual([
+      {
+        propName: "hoge",
+        type: {
+          __type: "PrimitiveTO",
+          kind: "string",
+        },
+      },
+      {
+        propName: "foo",
+        type: {
+          __type: "PrimitiveTO",
+          kind: "string",
         },
       },
     ])
