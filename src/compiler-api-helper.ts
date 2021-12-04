@@ -6,6 +6,9 @@ import { primitive, special } from "./type-object"
 import { ok, ng, switchExpression, isOk, isNg } from "./util"
 
 type TypeDeclaration = { typeName: string | undefined; type: to.TypeObject }
+type TypeHasCallSignature = Omit<ts.Type, "getCallSignatures"> & {
+  getCallSignatures: () => [ts.Signature, ...ts.Signature[]]
+}
 
 export class CompilerApiHelper {
   #program: ts.Program
@@ -280,15 +283,49 @@ export class CompilerApiHelper {
           })(),
         })
       )
+      .case<to.CallableTO, { type: TypeHasCallSignature }>(
+        ({ type }) => this.#isCallable(type),
+        ({ type }) =>
+          this.convertTypeFromCallableSignature(type.getCallSignatures()[0])
+      )
       .case<to.ObjectTO>(
         ({ type }) => this.#typeChecker.getPropertiesOfType(type).length !== 0,
         ({ type }) => this.#createObjectType(type)
       )
-      .default<to.UnsupportedTO>(({ typeText }) => ({
-        __type: "UnsupportedTO",
-        kind: "convert",
-        typeText,
-      }))
+      .default<to.UnsupportedTO>(({ typeText, type }) => {
+        return {
+          __type: "UnsupportedTO",
+          kind: "convert",
+          typeText,
+        }
+      })
+  }
+
+  convertTypeFromCallableSignature(signature: ts.Signature): to.CallableTO {
+    return {
+      __type: "CallableTO",
+      argTypes: signature
+        .getParameters()
+        .map((argSymbol): to.CallableArgument | undefined => {
+          const declare = (argSymbol.getDeclarations() ?? [])[0]
+
+          return typeof declare !== "undefined"
+            ? {
+                name: argSymbol.getName(),
+                type: this.convertType(
+                  this.#typeChecker.getTypeOfSymbolAtLocation(
+                    argSymbol,
+                    declare
+                  )
+                ),
+              }
+            : undefined
+        })
+        .filter((arg): arg is to.CallableArgument => arg !== undefined),
+      returnType: this.convertType(
+        this.#typeChecker.getReturnTypeOfSignature(signature)
+      ),
+    }
   }
 
   #extractNodes(sourceFile: ts.SourceFile): ts.Node[] {
@@ -332,10 +369,9 @@ export class CompilerApiHelper {
                     }
                   : type
                   ? this.#isCallable(type)
-                    ? {
-                        __type: "UnsupportedTO",
-                        kind: "function",
-                      }
+                    ? this.convertTypeFromCallableSignature(
+                        type.getCallSignatures()[0]
+                      )
                     : this.convertType(type)
                   : {
                       __type: "UnsupportedTO",
@@ -454,13 +490,8 @@ export class CompilerApiHelper {
     )
   }
 
-  #isCallable(type: ts.Type): boolean {
-    return (
-      this.#getMembers(type).findIndex(
-        (member) =>
-          unescapeLeadingUnderscores(member.getEscapedName()) === "__call"
-      ) >= 0
-    )
+  #isCallable(type: ts.Type): type is TypeHasCallSignature {
+    return type.getCallSignatures().length > 0
   }
 
   #getMembers(type: ts.Type): ts.Symbol[] {

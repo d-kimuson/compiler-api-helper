@@ -245,14 +245,6 @@ describe("convertType", () => {
         },
       },
       {
-        // method is not supported yet
-        propName: "hoge",
-        type: {
-          __type: "UnsupportedTO",
-          kind: "function",
-        },
-      },
-      {
         propName: "time",
         type: {
           __type: "SpecialTO",
@@ -421,5 +413,61 @@ describe("convertType", () => {
         },
       },
     ])
+  })
+
+  it("function", () => {
+    const typesResult = helper.extractTypes(absolutePath("./types/function.ts"))
+    expect(isOk(typesResult)).toBe(true)
+    if (!isOk(typesResult)) {
+      return
+    }
+
+    const [type0, type1, type2] = typesResult.ok
+    expect(type0).toBeDefined()
+
+    expect(type0?.type).toStrictEqual({
+      __type: "CallableTO",
+      argTypes: [
+        {
+          name: "arg",
+          type: {
+            __type: "PrimitiveTO",
+            kind: "string",
+          },
+        },
+      ],
+      returnType: {
+        __type: "PrimitiveTO",
+        kind: "number",
+      },
+    })
+
+    expect(type1?.type.__type).toBe("ObjectTO")
+    const typeObj = type1?.type
+    if (!typeObj || typeObj.__type !== "ObjectTO") return
+
+    expect(typeObj.getProps()).toStrictEqual([
+      {
+        propName: "method",
+        type: {
+          __type: "CallableTO",
+          argTypes: [
+            {
+              name: "arg",
+              type: {
+                __type: "PrimitiveTO",
+                kind: "string",
+              },
+            },
+          ],
+          returnType: {
+            __type: "PrimitiveTO",
+            kind: "number",
+          },
+        },
+      },
+    ])
+
+    expect(type2).not.toBeDefined()
   })
 })

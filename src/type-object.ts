@@ -9,9 +9,10 @@ export type TypeObject =
   | ObjectTO
   | UnionTO
   | EnumTO
+  | CallableTO
   | UnsupportedTO
 
-type TypeNameTrait = {
+type WithTypeName = {
   typeName: string
 }
 
@@ -30,17 +31,17 @@ export type LiteralTO = {
   value: unknown
 }
 
-export type ArrayTO = TypeNameTrait & {
+export type ArrayTO = WithTypeName & {
   __type: "ArrayTO"
   child: TypeObject
 }
 
-export type TupleTO = TypeNameTrait & {
+export type TupleTO = WithTypeName & {
   __type: "TupleTO"
   items: TypeObject[]
 }
 
-export type ObjectTO = TypeNameTrait & {
+export type ObjectTO = WithTypeName & {
   __type: "ObjectTO"
   tsType: ts.Type // to resolve recursive type sequentially
   getProps: () => {
@@ -49,17 +50,32 @@ export type ObjectTO = TypeNameTrait & {
   }[]
 }
 
-export type UnionTO = TypeNameTrait & {
+export type UnionTO = WithTypeName & {
   __type: "UnionTO"
   unions: TypeObject[]
 }
 
-export type EnumTO = TypeNameTrait & {
+export type EnumTO = WithTypeName & {
   __type: "EnumTO"
   enums: {
     name: string
     type: LiteralTO
   }[]
+}
+
+export type CallableArgument = {
+  name: string
+  type: TypeObject
+}
+
+export type CallableTO = {
+  __type: "CallableTO"
+  argTypes: {
+    name: string
+    type: TypeObject
+    // should support optional arguments?
+  }[]
+  returnType: TypeObject
 }
 
 /**
