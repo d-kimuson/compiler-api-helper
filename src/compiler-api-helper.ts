@@ -24,7 +24,10 @@ export class CompilerApiHelper {
     this.#typeChecker = this.#program.getTypeChecker()
   }
 
-  public extractTypes(filePath: string): Result<
+  public extractTypes(
+    filePath: string,
+    isSkipUnresolved = true
+  ): Result<
     { typeName: string | undefined; type: to.TypeObject }[],
     | { reason: "fileNotFound" }
     | {
@@ -62,10 +65,12 @@ export class CompilerApiHelper {
             // @ts-expect-error exclude not exported type def
             typeof node?.localSymbol !== "undefined")
       )
-      .filter((node) =>
-        this.#isTypeParametersResolved(
-          this.#typeChecker.getTypeAtLocation(node)
-        )
+      .filter(
+        (node) =>
+          !isSkipUnresolved ||
+          this.#isTypeParametersResolved(
+            this.#typeChecker.getTypeAtLocation(node)
+          )
       )
 
     return ok(
